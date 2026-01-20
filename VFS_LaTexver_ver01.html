@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VFS LaTeXViewer</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+    <style>
+        :root {
+            --bg-dark: #0a0b0c;
+            --panel-dark: #151719;
+            --text-main: #d1d2d3;
+            --border-gray: #2d3135;
+            --vfs-gold: #c5a059;
+            --vfs-silver: #a8adb3;
+            --vfs-editor-bg: #1a1c1e;
+        }
+
+        body {
+            background-color: var(--bg-dark);
+            color: var(--text-main);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* VFS Header Style */
+        header {
+            background: linear-gradient(to right, #1a1c1e, #0a0b0c);
+            border-bottom: 1px solid var(--vfs-gold);
+            padding: 8px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-shrink: 0;
+        }
+
+        .logo-area { display: flex; align-items: center; gap: 12px; }
+        .vfs-logo-box {
+            width: 32px; height: 32px;
+            background: linear-gradient(135deg, var(--vfs-silver), var(--vfs-gold));
+            border-radius: 2px;
+            display: flex; align-items: center; justify-content: center;
+            font-weight: 900; color: #000; font-size: 0.8rem;
+            box-shadow: 0 0 10px rgba(197, 160, 89, 0.3);
+        }
+
+        .brand-info { display: flex; flex-direction: column; }
+        .product-name { font-weight: bold; font-size: 1rem; color: var(--vfs-gold); }
+        .brand-subname { font-size: 0.6rem; color: var(--vfs-silver); letter-spacing: 1px; opacity: 0.7; }
+
+        .header-controls { display: flex; align-items: center; gap: 10px; }
+        .lang-select { 
+            background: #1a1c1e; 
+            color: var(--vfs-gold); 
+            border: 1px solid var(--border-gray); 
+            font-size: 0.7rem; 
+            padding: 4px 8px; 
+            cursor: pointer; 
+        }
+
+        /* Layout */
+        .main-content {
+            flex: 1;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1px;
+            background-color: var(--border-gray);
+            overflow: hidden;
+        }
+
+        .panel {
+            background-color: var(--panel-dark);
+            display: flex;
+            flex-direction: column;
+            padding: 20px;
+            overflow-y: auto;
+        }
+
+        .label {
+            font-size: 0.7rem;
+            color: var(--vfs-silver);
+            font-weight: bold;
+            margin-bottom: 10px;
+            letter-spacing: 1px;
+        }
+
+        /* Toolbar Styles */
+        .toolbar {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 5px;
+            margin-bottom: 15px;
+        }
+
+        .tool-btn {
+            background: #1a1c1e;
+            border: 1px solid var(--border-gray);
+            color: var(--vfs-silver);
+            padding: 6px 10px;
+            cursor: pointer;
+            font-size: 0.7rem;
+            transition: 0.2s;
+        }
+
+        .tool-btn:hover {
+            border-color: var(--vfs-gold);
+            color: var(--vfs-gold);
+        }
+
+        textarea {
+            flex: 1;
+            width: 100%;
+            min-height: 200px;
+            background-color: var(--vfs-editor-bg);
+            color: #fff;
+            border: 1px solid var(--border-gray);
+            padding: 15px;
+            font-family: 'Consolas', monospace;
+            font-size: 1rem;
+            resize: none;
+            box-sizing: border-box;
+            outline: none;
+        }
+
+        textarea:focus {
+            border-color: var(--vfs-gold);
+        }
+
+        /* Output & Preview */
+        .code-container {
+            position: relative;
+            background: #0a0b0c;
+            border: 1px solid var(--border-gray);
+            padding: 15px;
+            margin-bottom: 20px;
+            min-height: 60px;
+        }
+
+        #latex-code {
+            font-family: 'Consolas', monospace;
+            font-size: 0.9rem;
+            color: var(--vfs-gold);
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+
+        .action-btn {
+            padding: 6px 12px;
+            cursor: pointer;
+            border: 1px solid var(--vfs-gold);
+            background: transparent;
+            color: var(--vfs-gold);
+            font-weight: bold;
+            font-size: 0.75rem;
+            transition: 0.2s;
+        }
+
+        .action-btn:hover {
+            background: var(--vfs-gold);
+            color: #000;
+        }
+
+        .copy-btn {
+            position: absolute;
+            right: 10px;
+            top: 10px;
+        }
+
+        #preview {
+            flex: 1;
+            background: #fff; /* 数式視認性のため白背景を維持 */
+            color: #000;
+            border-radius: 2px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            font-size: 2rem;
+            overflow-x: auto;
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: var(--bg-dark); }
+        ::-webkit-scrollbar-thumb { background: var(--border-gray); }
+        ::-webkit-scrollbar-thumb:hover { background: var(--vfs-silver); }
+    </style>
+</head>
+<body>
+
+<header>
+    <div class="logo-area">
+        <div class="vfs-logo-box">VFS</div>
+        <div class="brand-info">
+            <div class="product-name" id="ui-app-name">VFS LaTeXViewer</div>
+            <div class="brand-subname">VANILLA FIELD SOFTHOUSE</div>
+        </div>
+    </div>
+    <div class="header-controls">
+        <select class="lang-select" id="langSelect" onchange="changeLang()">
+            <option value="ja">JP</option>
+            <option value="en" selected>EN</option>
+        </select>
+    </div>
+</header>
+
+<div class="main-content">
+    <div class="panel">
+        <label class="label" id="ui-input-label">INPUT (MATH TEXT)</label>
+        <div class="toolbar">
+            <button class="tool-btn" onclick="insertText('int_{a}^{b} f(x) dx')">∫ Integral</button>
+            <button class="tool-btn" onclick="insertText('sum_{i=1}^{n} x_i')">Σ Sigma</button>
+            <button class="tool-btn" onclick="insertText('log(x)')">log</button>
+            <button class="tool-btn" onclick="insertText('sqrt(x)')">√ sqrt</button>
+            <button class="tool-btn" onclick="insertText('(a)/(b)')">Fraction</button>
+            <button class="tool-btn" onclick="insertText('x**2')">Power</button>
+        </div>
+        <textarea id="input" placeholder="e.g. integral( (x)/(x+1) ) + log(x**2)"></textarea>
+    </div>
+
+    <div class="panel">
+        <label class="label" id="ui-output-label">LATEX SOURCE</label>
+        <div class="code-container">
+            <button class="action-btn copy-btn" onclick="copyLatex()" id="ui-copy-btn">COPY</button>
+            <div id="latex-code"></div>
+        </div>
+        
+        <label class="label" id="ui-preview-label">PREVIEW</label>
+        <div id="preview"></div>
+    </div>
+</div>
+
+<script>
+    const i18n = {
+        ja: {
+            appName: "VFS LaTeXViewer",
+            inputLabel: "入力 (MATH TEXT)",
+            outputLabel: "LATEXソース",
+            previewLabel: "プレビュー",
+            copyBtn: "コピー",
+            copied: "コピー完了"
+        },
+        en: {
+            appName: "VFS LaTeXViewer",
+            inputLabel: "INPUT (MATH TEXT)",
+            outputLabel: "LATEX SOURCE",
+            previewLabel: "PREVIEW",
+            copyBtn: "COPY",
+            copied: "COPIED"
+        }
+    };
+
+    let currentLang = 'en';
+
+    function changeLang() {
+        currentLang = document.getElementById('langSelect').value;
+        const t = i18n[currentLang];
+        document.getElementById('ui-app-name').textContent = t.appName;
+        document.getElementById('ui-input-label').textContent = t.inputLabel;
+        document.getElementById('ui-output-label').textContent = t.outputLabel;
+        document.getElementById('ui-preview-label').textContent = t.previewLabel;
+        document.getElementById('ui-copy-btn').textContent = t.copyBtn;
+    }
+
+    function insertText(text) {
+        const textarea = document.getElementById('input');
+        const start = textarea.selectionStart;
+        const end = textarea.selectionEnd;
+        textarea.value = textarea.value.substring(0, start) + text + textarea.value.substring(end);
+        textarea.focus();
+        textarea.selectionStart = textarea.selectionEnd = start + text.length;
+        update();
+    }
+
+    function copyLatex() {
+        const code = document.getElementById('latex-code').textContent;
+        navigator.clipboard.writeText(code).then(() => {
+            const btn = document.getElementById('ui-copy-btn');
+            const originalText = i18n[currentLang].copyBtn;
+            btn.textContent = i18n[currentLang].copied;
+            setTimeout(() => btn.textContent = originalText, 2000);
+        });
+    }
+
+    function convert(str) {
+        let t = str.trim();
+        // 1. 積分・シグマのプリセット置換
+        t = t.replace(/int_\{(.*?)\}\^\{(.*?)\}/g, '\\int_{$1}^{$2} ');
+        t = t.replace(/sum_\{(.*?)\}\^\{(.*?)\}/g, '\\sum_{$1}^{$2} ');
+
+        // 2. べき乗
+        for(let i=0; i<5; i++) {
+            t = t.replace(/([a-zA-Z0-9\)])\*\*(\(([^()]+)\)|([a-zA-Z0-9\._]+))/g, (m, base, fullExp, innerExp, simpleExp) => {
+                return base + '^{' + (innerExp || simpleExp) + '}';
+            });
+        }
+
+        // 3. 分数処理 (再帰的)
+        for (let i = 0; i < 10; i++) {
+            let prev = t;
+            t = t.replace(/\(([^()]+)\)\/\(([^()]+)\)/g, '\\frac{$1}{$2}');
+            t = t.replace(/(\b[a-zA-Z0-9\._]+\b)\/\(([^()]+)\)/g, '\\frac{$1}{$2}');
+            t = t.replace(/\(([^()]+)\)\/(\b[a-zA-Z0-9\._]+\b)/g, '\\frac{$1}{$2}');
+            t = t.replace(/(\b[a-zA-Z0-9\._]+\b)\/(\b[a-zA-Z0-9\._]+\b)/g, '\\frac{$1}{$2}');
+            if (prev === t) break;
+        }
+
+        // 4. 関数
+        for (let i = 0; i < 5; i++) {
+            t = t.replace(/(log|ln|sin|cos|tan|exp|sqrt)\(([^()]+)\)/g, (m, func, content) => {
+                if (func === 'sqrt') return '\\sqrt{' + content + '}';
+                return '\\' + func + '\\left(' + content + '\\right)';
+            });
+        }
+
+        t = t.replace(/(\d+)\*([a-zA-Z])/g, '$1$2');
+        t = t.replace(/\*/g, ' \\cdot ');
+        t = t.replace(/(?<!\\left)\(([^()]+)\)/g, '\\left($1\\right)');
+        return t;
+    }
+
+    function update() {
+        const input = document.getElementById('input');
+        const codeDisp = document.getElementById('latex-code');
+        const preview = document.getElementById('preview');
+        
+        const raw = input.value;
+        if (!raw) {
+            codeDisp.textContent = "";
+            preview.innerHTML = "";
+            return;
+        }
+
+        const result = convert(raw);
+        codeDisp.textContent = result;
+
+        try {
+            katex.render(result, preview, {
+                throwOnError: false,
+                displayMode: true,
+                trust: true
+            });
+        } catch (e) {
+            preview.textContent = "Syntax Error";
+        }
+    }
+
+    document.getElementById('input').addEventListener('input', update);
+    window.onload = () => changeLang();
+</script>
+</body>
+</html>
